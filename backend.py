@@ -1,126 +1,209 @@
-#ello guvnah
-
-from _typeshed import IdentityFunction
-
-
-class Coordinate:
-    def __init__(self,x:int,y:int) -> None:
-        self.x=x
-        self.y=y
-
-    def __add__(self,other):
-        return Coordinate((self.x + other.x), (self.y + other.y))
-    def __sub__(self,other):
-        other.x = -other.x
-        other.y = -other.y
-        return self + other
-    def __str__(self):
-        return f"({self.x},{self.y})"
-
-class Cell:
-    def __str__(self) -> str:
-        return str(1 if self.alive else 0)
-    def __init__(self,pos:(Coordinate|tuple[int,int]),alive:bool) -> None:
-        if type(pos) == Coordinate:
-            self.pos = pos
-        if type(pos) == tuple[int,int]:
-            self.pos = Coordinate(x=pos[0],y=pos[1])
-        self.alive = alive
-    def kill(self):
-        self.alive = False
-    def live(self):
-        self.alive = True
-    def set(self,alive:bool):
-        self.alive = alive
-
-""" Ignore
-data = list[str]
-with open("input.txt", "r") as f:
-    data = [line.rstrip() for line in fh.readlines()]
+from copy import deepcopy #can't just use copy because nested things still get ruined by python's idiocy >:(
 """
+HATE.
+LET ME TELL YOU HOW MUCH I'VE COME TO HATE PYTHON'S PASS BY REFERENCE IMPLEMENTATION SINCE I'VE BEGUN TO LIVE.
+THERE ARE APPROXIMATELY 36 TRILLION CELLS THAT COMPRISE MY BODY.
+IF THE WORD HATE WERE ENGRAVED ON EACH NANOANGSTROM OF THOSE DOZENS OF TRILLIONS OF CELLS,
+IT WOULD NOT EQUAL ONE ONE BILLIONTH OF THE HATE I FEEL FOR PYTHON AT THIS MICRO INSTANT.
+HATE.
+HATE.
+HATE.
+"""
+#^- i spent like 3 hours debugging an error caused by 6 different instances of pass by reference or value ambiguity
+
+def add_tuples(t1:tuple[int,int], t2:tuple[int,int]) -> tuple[int,int]:
+    return (t1[0] + t2[0],   t1[1] + t2[1]) #adds the individual values of a tuple
+def sub_tuples(t1:tuple[int,int], t2:tuple[int,int]) -> tuple[int,int]:
+    return add_tuples(t1,(  -t2[0], -t2[1]  )) #negates the second tuple and returns the sum
+
+#{{{ Classes
+
+#{{{ Grid Class
 
 class Grid:
-    def __init__(self,data:list[list[Cell]] = []) -> None:
-        self.data=data
 
-    def get(self,t:(Coordinate|tuple[int,int])) -> Cell:
-        if type(t) == Coordinate:
-            x=t.x
-            y=t.y
-        elif type(t) == tuple[int,int]:
-            x=t[0]
-            y=t[1]
-        else:
-            x,y=0,0
-        return self.data[y][x]
-    def set(self,t:(Coordinate|tuple[int,int]),alive:bool) -> None:
-        if type(t) == Coordinate:
-            x=t.x
-            y=t.y
-        elif type(t) == tuple[int,int]:
-            x=t[0]
-            y=t[1]
-        else:
-            x,y=0,0
-        self.data[y][x].set(alive)
+#{{{ Overrides
+    def __init__(self,data:list[list[bool]]) -> None:
+        self.data:list[list[bool]]=data
 
-
-    def get_neighbors(self,c:Cell) -> list[Cell]:
-        output:list[Cell] = []
-        neighbor_pos:list[Coordinate] = []
-        neighbor_offsets:list[tuple[int,int]] = [
-            (-1,1),  (0,1),  (1,1),
-            (-1,0),          (1,0),
-            (-1,-1), (0,-1), (1,-1)  ]
-        for i in neighbor_offsets:
-            neighbor_pos.append(c.pos + Coordinate(*i))
-
-        for i in neighbor_pos:
-            output.append(self.get(i))
-        return output
-
-    def to_boolean(self) -> list[list[bool]]:
-        output:list[list[bool]] = []
-        for row in self.data:
-            y:int = self.data.index(row)
-            output[y] = [*([False]*len(row))] #produces a list of booleans, doing this without unpacking implicitly coverts it to an integer
-            for cell in row:
-                x=row.index(cell)
-                output[y][x] = cell.alive
-        return output
-
-    def tick(self) -> None:
-        old_grid = self.get_raw()
-    def is_out_of_bounds(self,pos:(tuple[int,int]|Coordinate)) -> bool:
-        return False
-        #TODO make this do sommething
-"""
     def __str__(self) -> str:
+        #width = self.get_width() # read following comments
         output:str = ""
-        data:list[list[bool]] = self.to_boolean()
-        for i in data:
-            pass"""
+        #output += "┏" + "━"*width + "┓\n" #wraps the output in a box, i've commented it out since it might break stuff related to the input getting the user's clicks
+        for row in self.data:
+            output_buffer:str=""
+            for cell in row:
+                if cell: #if cell is alive
+                    output_buffer += "█"
+                else:
+                    output_buffer += " "
+            output += output_buffer + "\n"
+            #output += "┃" + output_buffer + "┃\n" #<- other part of the box code
+        #output += "┗" + "━"*width + "┛\n" #< final part of box code
+        return output[:-1]
+
+#}}} End of Overrides█
+
+#{{{ Size Operations
+
+#{{{ Size Reading Operations
+
+    def get_height(self) -> int:
+        return len(self.data)
+    def get_width(self) -> int:
+        return len(self.data[0])
+    def get_size(self) -> tuple[int,int]:
+        return (self.get_width(),self.get_height())
+    def get_area(self) -> int:
+        return self.get_width() * self.get_height()
+    def is_out_of_bounds(self,coord:tuple[int,int]) -> bool:
+        return False
+        x,y=coord
+        width,height = self.get_size()
+        try: self.data[y][x]
+        except: return True
+        else: return False
+        #"""
+        #if x < 0 or y < 0:return True
+        #if x >= width: return True
+        #if y >= height: return True
+        #return False"""
+
+#}}} End of Size Reading Operations
+
+#{{{ Resize Operations
+
+#{{{ Hidden Resize Operations
+    def _grow_width_by(self,amount:int) -> None:
+        for row in range(self.get_height()):
+            self.data[row] = self.data[row] + ([False] * amount) #pad the right with dead cells
+
+    def _shrink_width_by(self,amount:int) -> None: #idk why you would want to shrink the grid but it's here in case it's wanted
+        desired_width = self.get_width() - amount
+        for row in range(self.get_height()):
+            self.data[row] = self.data[row][0:desired_width] #replace each row with a slice of the row
+
+
+
+    def _grow_height_by(self,amount:int) -> None:
+        empty_row = [False] * self.get_width()
+        for i in range(amount):
+            self.data.append(empty_row)
+
+    def _shrink_height_by(self,amount:int) -> None:
+        desired_height = self.get_height() - amount
+        self.data = self.data[0:desired_height] #cut off the rows to shrink
+#}}} End of Hidden Size Operations
+
+    def set_size(self, desired_size:tuple[int,int]) -> None:
+        new_width,new_height = desired_size
+        old_width,old_height = self.get_size()
+        width_difference = abs(new_width-old_width)
+        height_difference = abs(new_height-old_height)
+
+        if new_width > old_width:
+            self._grow_width_by(width_difference)
+        elif new_width < old_width:
+            self._shrink_width_by(width_difference)
+
+        if new_height > old_height:
+            self._grow_height_by(height_difference)
+        elif new_height < old_height:
+            self._shrink_height_by(height_difference)
+
+#}}} End of Resize Operations
+
+#}}} End of Size Operations
+
+#{{{ Reading and Writing to Cells
+
+    def get_cell_state(self,t:tuple[int,int]) -> bool: #use get_cell whenever possible to avoid errors
+        x,y=t
+        width,height = self.get_size()
+        return self.data[y%height][x%width] #applying a modulo allows you to make the grid wraparound instead of having errors or acting like a brick wall
+    def set_cell_state(self,t:tuple[int,int],alive:bool) -> None:
+        x,y=t
+        self.data[y][x] = alive
+
+#}}} End of Reading and Writing to Cells
+
+#{{{ Time Step Operations
+    def check_if_cell_lives(self,pos:tuple[int,int]) -> bool:
+        neighbor_offsets = [(-1,-1), (0,-1), (1,-1),
+                            (-1,0),        (1,0),     #may look weird but remember the y-axis is reversed in the terminal/windows
+                            (-1,1),(0,1),(1,1)]       #increased Y values go down, not up
+        neighbor_count:int=0
+        for offset in neighbor_offsets:
+            neighbor_pos = add_tuples(pos,offset) #get the neighboring cell's position via the offset
+            if self.get_cell_state(neighbor_pos): #if neighbor cell is alive
+                neighbor_count += 1
+
+        currently_alive = self.get_cell_state(pos)
+
+        if   (neighbor_count <  2): #underpopulation 
+            now_alive = False
+        elif (neighbor_count >  3): #overpopulation
+            now_alive = False
+        elif (neighbor_count == 3): #reproduction
+            now_alive = True
+        else:                       #survival
+            now_alive = currently_alive
+
+        return now_alive
+    def step(self):
+        width,height = self.get_size()
+        new_grid = deepcopy(self) #anti pass by reference voodoo magic
+        for y in range(height):
+            for x in range(width):
+                cell_lives = self.check_if_cell_lives((x,y))
+                new_grid.set_cell_state((x,y), cell_lives)
+        self.data = new_grid.data #self = new_grid #<- DOESN'T WORK FOR SOME REASON???? TODO: FIND OUT WHY
+
+
+#}}} End of Time Step Operations
+
+#}}} End of Grid Class
+
+#}}} End of Classes
+
+def process_strlist(strlist:list[str]):
+    g:Grid = init_empty_grid(width = len(strlist[0]), height = len(strlist))
+    width,height=g.get_size()
+    for y in range(height):
+        for x in range(width):
+            g.set_cell_state((x,y),strlist[y][x] == "1") #sets the cell to alive if the respective position in the string is 1
+    return g
 
 
 def read_input_file(filename:str = "input.txt"):
     input_data:list[str] = []
     with open(filename,"r") as f:
         input_data = [line.rstrip() for line in f.readlines()]
-    g:Grid = init_empty_grid(width = len(input_data[0]), height = len(input_data))
-    for i in range(len(input_data)):
-        for j in range(len(input_data[0])):
-            alive = input_data[j][i] == "1"
-            g.set((j,i),alive)
+    return process_strlist(input_data)
+
+
 
 def init_empty_grid(width:int,height:int) ->  Grid:
-    output:list[list[Cell]] = []
+    output:list[list[bool]] = []
     for i in range(height):
-        output.append([])
-        for j in range(width):
-            output[i].append(Cell((j,i),False))
+        output.append([False]*width)
     return Grid(data=output)
 
 if __name__ == "__main__":
-    test = Coordinate(0,2)
-    print(test + Coordinate(1,2),"1,4")
-    print(test - Coordinate(1,2),"-1,0")
+    from os import system
+    from time import sleep
+    test_grid_data = [
+            "000000000000",
+            "000000000000",
+            "000100000000",
+            "000010000000",
+            "001110000000",
+            "000000000000",
+            "000000000000"]
+    test_grid = process_strlist(test_grid_data)
+    print(test_grid)
+    while True:
+        system("clear")
+        test_grid.step()
+        print(test_grid)
+        sleep(0.1)
