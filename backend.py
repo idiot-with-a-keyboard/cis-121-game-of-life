@@ -1,4 +1,4 @@
-from copy import deepcopy #can't just use copy because nested things still get ruined by python's idiocy >:(
+from copy import deepcopy, error #can't just use copy because nested things still get ruined by python's idiocy >:(
 """
 HATE.
 LET ME TELL YOU HOW MUCH I'VE COME TO HATE PYTHON'S PASS BY REFERENCE IMPLEMENTATION SINCE I'VE BEGUN TO LIVE.
@@ -166,6 +166,8 @@ class Grid:
 
 #}}} End of Classes
 
+#{{{ Reading and Writing in list string format
+
 def process_strlist(strlist:list[str]):
     g:Grid = init_empty_grid(width = len(strlist[0]), height = len(strlist))
     width,height=g.get_size()
@@ -174,6 +176,7 @@ def process_strlist(strlist:list[str]):
             g.set_cell_state((x,y),strlist[y][x] == "1") #sets the cell to alive if the respective position in the string is 1
     return g
 
+# {{{ Reading a File Into List String Format
 
 def read_input_file(filename:str = "input.txt"):
     input_data:list[str] = []
@@ -181,7 +184,21 @@ def read_input_file(filename:str = "input.txt"):
         input_data = [line.rstrip() for line in f.readlines()]
     return process_strlist(input_data)
 
+# }}} End of Reading a File Into List String Format
 
+#{{{ AprilOS' modified 2D list string format for gif exportation
+
+def return_data(grid:Grid): #Essentially the "export to gif" functionality
+        cell_grid = [] #Creating a list to read from
+        for row in grid.data:
+            cellstr = ""
+            for cell in row:
+                if cell:
+                    cellstr += "1"
+                else:
+                    cellstr += "0"
+            cell_grid.append(cellstr)
+        return cell_grid
 
 def init_empty_grid(width:int,height:int) ->  Grid:
     output:list[list[bool]] = []
@@ -201,9 +218,11 @@ if __name__ == "__main__":
             "000000000000",
             "000000000000"]
     test_grid = process_strlist(test_grid_data)
+    test_grid._grow_height_by(40)
+    test_grid._grow_width_by(100)
     print(test_grid)
     while True:
         system("clear")
         test_grid.step()
         print(test_grid)
-        sleep(0.1)
+        sleep(1/60)
