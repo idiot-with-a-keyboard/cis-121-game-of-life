@@ -47,7 +47,8 @@ class Grid:
 #{{{ Size Operations
 
 #{{{ Size Reading Operations
-
+	def get_data(self):
+		return self.data
 	def get_height(self) -> int:
 		return len(self.data)
 	def get_width(self) -> int:
@@ -191,7 +192,7 @@ def read_input_file(filename:str = "input.txt"):
 
 def reformat_to_strlist(grid:Grid): #Essentially the "export to gif" functionality
 		cell_grid = [] #Creating a list to read from
-		for row in grid.data:
+		for row in grid.get_data():
 			cellstr = ""
 			for cell in row:
 				if cell:
@@ -221,9 +222,9 @@ if __name__ == "__main__":
 	test_grid = process_strlist(test_grid_data)
 	test_grid._grow_height_by(40)
 	test_grid._grow_width_by(100)
-	print(test_grid)
-	while True:
-		system("clear")
-		test_grid.step()
-		print(test_grid)
-		sleep(1/60)
+	print(reformat_to_strlist(test_grid))
+	#while True:
+	#	system("clear")
+	#	test_grid.step()
+	#	print(test_grid)
+	#	sleep(1/60)
