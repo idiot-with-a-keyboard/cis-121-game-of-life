@@ -40,7 +40,7 @@ class Grid:
 			output += output_buffer + "\n"
 			#output += "┃" + output_buffer + "┃\n" #<- other part of the box code
 		#output += "┗" + "━"*width + "┛\n" #< final part of box code
-		return output[:-1]
+		return output[:-1] # remove extra trailing newline
 
 #}}} End of Overrides█
 
@@ -57,7 +57,7 @@ class Grid:
 	def get_area(self) -> int:
 		return self.get_width() * self.get_height()
 	def is_out_of_bounds(self,coord:tuple[int,int]) -> bool:
-		return False
+		return False # redundant, as the new code wraps around the grid
 		x,y=coord
 		width,height = self.get_size()
 		try: self.data[y][x]
@@ -188,7 +188,8 @@ def read_input_file(filename:str = "input.txt"):
 
 #{{{ AprilOS' modified 2D list string format for gif exportation
 
-def return_data(grid:Grid): #Essentially the "export to gif" functionality
+
+def reformat_to_strlist(grid:Grid): #Essentially the "export to gif" functionality
 		cell_grid = [] #Creating a list to read from
 		for row in grid.data:
 			cellstr = ""
